@@ -1,3 +1,7 @@
+////////////////////////////////////////////////////////////////////////////
+// Основная функция: разбиение входящего потока символов на отдельные слова
+////////////////////////////////////////////////////////////////////////////
+
 #include "stdafx.h"
 
 // функция чтения аргументов командной строки
@@ -21,12 +25,38 @@ bool read_cmd_line(int argc, char** argv, std::string& source_file)
 	return true;
 }
 
+enum class ReadStates { before, inside, after };
+ReadStates state = ReadStates::before;
+
 // Функция обработки
+// в стиле конечного автомата
 void process_data(std::istream& input)
 {
 	char c = 0;
-	while(input >> std::noskipws >> c)
-		std::cout << c;
+	while (input >> std::noskipws >> c)
+	{
+		switch(state)
+		{
+		case ReadStates::before:
+			if (' ' != c && '\n' != c)
+				std::cout << c, state = ReadStates::inside;
+			else //if (' ' == c || '\n' == c)
+				nullptr, state = ReadStates::before;
+			break;
+		case ReadStates::inside:
+			if (' ' != c && '\n' != c)
+				std::cout << c, state = ReadStates::inside;
+			else //if (' ' == c || '\n' == c)
+				std::cout << std::endl, state = ReadStates::after;
+			break;
+		case ReadStates::after:
+			if (' ' != c && '\n' != c)
+				std::cout << c, state = ReadStates::inside;
+			else //if (' ' == c || '\n' == c)
+				std::cout << std::endl, state = ReadStates::after;
+			break;
+		}
+	}
 
 	std::cout << std::endl;
 }

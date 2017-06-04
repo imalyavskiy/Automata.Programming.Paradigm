@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <tchar.h>
+#include <assert.h>
 
 #include <string>
 #include <sstream>
