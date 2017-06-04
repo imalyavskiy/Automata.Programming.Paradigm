@@ -30,31 +30,49 @@ enum class Symbols{ WSpace = 0, CReturn = 1, Input = 2, Nothing = 3 };
 
 // Функция обработки
 // в стиле конечного автомата
+
 void process_stream(std::istream& input)
 {
 	ReadStates state = ReadStates::Between;
+	char c = 0;
+
+	std::map<ReadStates, std::map<Symbols, std::pair<ReadStates, Symbols>>> transition_table =
+	{
+		{ ReadStates::Between,
+			{	// got				// transit to			// print symbol
+				{ Symbols::WSpace,	{ ReadStates::Between,	Symbols::Nothing } },
+				{ Symbols::CReturn,	{ ReadStates::Between,	Symbols::Nothing } },
+				{ Symbols::Input,	{ ReadStates::Inside,	Symbols::Input } },
+			}
+		},
+		{ ReadStates::Inside,
+			{	// got				// transit to			// print symbol
+				{ Symbols::WSpace,	{ ReadStates::Between,  Symbols::CReturn } },
+				{ Symbols::CReturn,	{ ReadStates::Between,  Symbols::CReturn } },
+				{ Symbols::Input,	{ ReadStates::Inside,	Symbols::Input } }
+			}
+		},
+	};
 
 	// Шаг автомата
-	auto step = [&state](const char& c)
+	auto step = [&transition_table, &state](char& c)
 	{
-		switch (state)
+		Symbols symbol = ' ' == c ? Symbols::WSpace : ( '\n' == c ? Symbols::CReturn : Symbols::Input );
+		
+		const std::pair<ReadStates, Symbols>& transition = transition_table[state][symbol];
+		
+		state = transition.first;
+
+		switch (transition.second)
 		{
-		case ReadStates::Between:
-			if (' ' != c && '\n' != c)
-				std::cout << c,			state = ReadStates::Inside;
-			else //if (' ' == c || '\n' == c)
-				nullptr,				state = ReadStates::Between;
-			break;
-		case ReadStates::Inside:
-			if (' ' != c && '\n' != c)
-				std::cout << c,			state = ReadStates::Inside;
-			else //if (' ' == c || '\n' == c)
-				std::cout << std::endl, state = ReadStates::Between;
-			break;
+		case Symbols::CReturn:	std::cout << std::endl; break;
+		case Symbols::Input:	std::cout << c; break;
+		case Symbols::WSpace:	break;
+		case Symbols::Nothing:	break;
+		default:				break;
 		}
 	};
 
-	char c = 0;
 	while (input >> std::noskipws >> c)
 		step(c);
 
