@@ -26,38 +26,39 @@ bool read_cmd_line(int argc, char** argv, std::string& source_file)
 }
 
 enum class ReadStates { Between = 0, Inside = 1};
-enum class Symbols{ WSpace = 0, CReturn = 1, Input = 2, Nothing = 3 };
+enum class Symbols{ AlNum = 0, Other = 1 };
+
+template <typename _READSTATES>
+using TTransition = std::pair<_READSTATES, std::function<void(const char&)>>;
+typedef TTransition<ReadStates> Transition;
+
+template <typename _READSTATES, typename _SYMBOLS>
+using TTransitionTable = std::map<_READSTATES, std::map<_SYMBOLS, TTransition<_READSTATES>>>;
+typedef TTransitionTable<ReadStates, Symbols> TransitionTable;
 
 // Функция обработки
 // в стиле конечного автомата
-
-template <typename _READSTATES, typename _SYMBOLS>
-using TTransition = std::pair<_READSTATES, _SYMBOLS>;
-typedef TTransition<ReadStates, Symbols> Transition;
-
-template <typename _READSTATES, typename _SYMBOLS>
-using TTransitionTable = std::map<_READSTATES, std::map<_SYMBOLS, TTransition<_READSTATES, _SYMBOLS>>>;
-typedef TTransitionTable<ReadStates, Symbols> TransitionTable;
-
 void process_stream(std::istream& input)
 {
 	ReadStates state = ReadStates::Between;
 	char c = 0;
 
+	auto print_creturn = [](const char& ch = 0)->void { std::cout << std::endl; };
+	auto print_nothing = [](const char& ch = 0)->void {};
+	auto print_symbol  = [](const char& ch = 0)->void { std::cout << ch;};
+
 	const TransitionTable transition_table =
 	{
 		{ ReadStates::Between,
 			{	// got				// transit to			// print symbol
-				{ Symbols::WSpace,	{ ReadStates::Between,	Symbols::Nothing } },
-				{ Symbols::CReturn,	{ ReadStates::Between,	Symbols::Nothing } },
-				{ Symbols::Input,	{ ReadStates::Inside,	Symbols::Input } },
+				{ Symbols::Other,	{ ReadStates::Between,	print_nothing } },
+				{ Symbols::AlNum,	{ ReadStates::Inside,	print_symbol  } },
 			}
 		},
 		{ ReadStates::Inside,
 			{	// got				// transit to			// print symbol
-				{ Symbols::WSpace,	{ ReadStates::Between,  Symbols::CReturn } },
-				{ Symbols::CReturn,	{ ReadStates::Between,  Symbols::CReturn } },
-				{ Symbols::Input,	{ ReadStates::Inside,	Symbols::Input } }
+				{ Symbols::Other,	{ ReadStates::Between,  print_creturn } },
+				{ Symbols::AlNum,	{ ReadStates::Inside,	print_symbol  } },
 			}
 		},
 	};
@@ -65,20 +66,13 @@ void process_stream(std::istream& input)
 	// Шаг автомата
 	auto step = [&transition_table, &state](char& c)
 	{
-		Symbols symbol = ' ' == c ? Symbols::WSpace : ('\n' == c ? Symbols::CReturn : Symbols::Input);
+		Symbols symbol = 0 < std::isalnum(c) ? Symbols::AlNum : Symbols::Other;
 
 		const Transition& transition = transition_table.at(state).at(symbol);
-		
+
 		state = transition.first;
 
-		switch (transition.second)
-		{
-		case Symbols::CReturn:	std::cout << std::endl; break;
-		case Symbols::Input:	std::cout << c; break;
-		case Symbols::WSpace:	break;
-		case Symbols::Nothing:	break;
-		default:				break;
-		}
+		transition.second(c);
 	};
 
 	while (input >> std::noskipws >> c)
