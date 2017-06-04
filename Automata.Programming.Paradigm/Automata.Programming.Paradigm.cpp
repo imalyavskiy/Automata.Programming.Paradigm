@@ -31,12 +31,20 @@ enum class Symbols{ WSpace = 0, CReturn = 1, Input = 2, Nothing = 3 };
 // Функция обработки
 // в стиле конечного автомата
 
+template <typename _READSTATES, typename _SYMBOLS>
+using TTransition = std::pair<_READSTATES, _SYMBOLS>;
+typedef TTransition<ReadStates, Symbols> Transition;
+
+template <typename _READSTATES, typename _SYMBOLS>
+using TTransitionTable = std::map<_READSTATES, std::map<_SYMBOLS, TTransition<_READSTATES, _SYMBOLS>>>;
+typedef TTransitionTable<ReadStates, Symbols> TransitionTable;
+
 void process_stream(std::istream& input)
 {
 	ReadStates state = ReadStates::Between;
 	char c = 0;
 
-	std::map<ReadStates, std::map<Symbols, std::pair<ReadStates, Symbols>>> transition_table =
+	const TransitionTable transition_table =
 	{
 		{ ReadStates::Between,
 			{	// got				// transit to			// print symbol
@@ -57,9 +65,9 @@ void process_stream(std::istream& input)
 	// Шаг автомата
 	auto step = [&transition_table, &state](char& c)
 	{
-		Symbols symbol = ' ' == c ? Symbols::WSpace : ( '\n' == c ? Symbols::CReturn : Symbols::Input );
-		
-		const std::pair<ReadStates, Symbols>& transition = transition_table[state][symbol];
+		Symbols symbol = ' ' == c ? Symbols::WSpace : ('\n' == c ? Symbols::CReturn : Symbols::Input);
+
+		const Transition& transition = transition_table.at(state).at(symbol);
 		
 		state = transition.first;
 
