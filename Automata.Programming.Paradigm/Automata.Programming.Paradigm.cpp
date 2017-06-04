@@ -1,10 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////
-// Основная функция: разбиение входящего потока символов на отдельные слова
+// Author: Ilya Malyavskiy
+// e-mail: ilya.malyavskiy@gmail.com
+// The goal: To split the input stream into separate words.
 ////////////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 
-// функция чтения аргументов командной строки
+//////////////////////////////////////////////////////////////////////////
+// command prompt arguments reader
 bool read_cmd_line(int argc, char** argv, std::string& source_file)
 {
 	auto print_usage = []() { std::cout << "USAGE: The only parameter is the text source file path." << std::endl; };
@@ -36,8 +39,7 @@ template <typename _READSTATES, typename _SYMBOLS>
 using TTransitionTable = std::map<_READSTATES, std::map<_SYMBOLS, TTransition<_READSTATES>>>;
 typedef TTransitionTable<ReadStates, Symbols> TransitionTable;
 
-// Функция обработки
-// в стиле конечного автомата
+// Main procesing function designed with automata programming paradigm
 void process_stream(std::istream& input)
 {
 	ReadStates state = ReadStates::Between;
@@ -47,6 +49,7 @@ void process_stream(std::istream& input)
 	auto print_nothing = [](const char& ch = 0)->void {};
 	auto print_symbol  = [](const char& ch = 0)->void { std::cout << ch;};
 
+	// the transition table
 	const TransitionTable transition_table =
 	{
 		{ ReadStates::Between,
@@ -63,7 +66,7 @@ void process_stream(std::istream& input)
 		},
 	};
 
-	// Шаг автомата
+	// The step of the automata
 	auto step = [&transition_table, &state](char& c)
 	{
 		Symbols symbol = 0 < std::isalnum(c) ? Symbols::AlNum : Symbols::Other;
